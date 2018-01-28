@@ -9,7 +9,12 @@ function _config()
 {
     static $config;
     if (is_null($config)) {
-        $config = require '../config/main.php';
+        $filename = getenv('ENV', true);
+        if (empty($filename)) {
+            $filename = 'prod';
+        }
+        $filename = strtolower($filename);
+        $config = require '../config/' . $filename . '.php';
     }
     return $config;
 }

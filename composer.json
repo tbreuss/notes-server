@@ -10,7 +10,7 @@
     }
   },
   "scripts": {
-    "run": "php -S localhost:9999 -t ./public"
+    "run": "ENV=dev php -S localhost:9999 -t ./public"
   },
   "autoload": {
     "files": [
