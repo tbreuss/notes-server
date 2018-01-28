@@ -54,7 +54,7 @@ function generate_token(array $user): string
             'scopes' => json_decode($user['scopes'], true)
         ]
     );
-    $key = config('jwt_private_key');
+    $key = config('jwt.private_key');
     $jwt = FirebaseJWT::encode($payload, $key, 'HS256');
     return $jwt;
 }
@@ -65,6 +65,6 @@ function get_user_from_token(): array
     if (empty($jwt)) {
         return [];
     }
-    $decoded = FirebaseJWT::decode($jwt, config('jwt_private_key'), array('HS256'));
+    $decoded = FirebaseJWT::decode($jwt, config('jwt.private_key'), array('HS256'));
     return (array)$decoded->user;
 }

@@ -5,13 +5,29 @@ namespace common;
 use Medoo\Medoo as Medoo;
 use PDO;
 
-function config($key)
+function _config()
 {
     static $config;
     if (is_null($config)) {
         $config = require '../config/main.php';
     }
-    return $config[$key];
+    return $config;
+}
+
+function config(string $name, $default = null)
+{
+    $path = explode('.', $name);
+    $current = _config();
+    foreach ($path as $field) {
+        if (isset($current) && isset($current[$field])) {
+            $current = $current[$field];
+        } elseif (is_array($current) && isset($current[$field])) {
+            $current = $current[$field];
+        } else {
+            return $default;
+        }
+    }
+    return $current;
 }
 
 function medoo(): Medoo
@@ -23,7 +39,7 @@ function database(): Medoo
 {
     static $database;
     if (is_null($database)) {
-        $config = require '../config/database.php';
+        $config = config('database', []);
         $database = new Medoo($config);
     }
     return $database;
