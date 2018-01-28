@@ -1,8 +1,6 @@
 .DS_Store
 vendor/
-config/dev.php
-config/prod.php
-config/test.php
+config/*.env.php
 log/
 
 # Editor directories and files
