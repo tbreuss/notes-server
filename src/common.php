@@ -14,7 +14,7 @@ function _config()
             $filename = 'prod';
         }
         $filename = strtolower($filename);
-        $config = require '../config/' . $filename . '.php';
+        $config = require '../config/' . $filename . '.env.php';
     }
     return $config;
 }
