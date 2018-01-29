@@ -32,3 +32,9 @@ Open your webbrowser <http://localhost:9999/api.php/ping>
 You should see:
 
     {"name":"ch.tebe.notes","time":"2018-01-29T22:17:37+01:00","version":"0.5"}  
+
+## Demo
+
+https://notes.tebe.ch
+Username: github
+Password: github
