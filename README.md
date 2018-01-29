@@ -35,6 +35,6 @@ You should see:
 
 ## Demo
 
-https://notes.tebe.ch
-Username: github
+https://notes.tebe.ch  
+Username: github  
 Password: github
