@@ -78,4 +78,4 @@ CREATE TABLE `users` (
 
 INSERT INTO `users` (`username`, `password`, `salt`, `name`, `email`, `role`, `scopes`, `article_likes`, `article_views`, `lastlogin`, `deleted`, `created`, `modified`)
 VALUES
-  ('guest', '85ce75a79936bf769e8f924a9069e99d', '5a68d2b345b2f1.82132948', 'Guest', 'guest@example.com', 'guest', '[]', 0, 0, NULL, 0, NOW(), NULL);
+  ('user', '710b51dff55228b5668b3a2795ec4f10', '5a68d4c4256007.12366978', 'User', 'user@example.com', 'user', '["article.add","article.delete","article.edit"]', 0, 0, NULL, 0, NOW(), NULL);
