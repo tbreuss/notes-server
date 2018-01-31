@@ -1,6 +1,9 @@
-# REST-Server for Personal Notes Management Tool
+# Notes Management Tool – REST-Server
 
-This is the REST-API Server for the Personal Notes Management Tool.
+The REST-API Server for the Notes Management Tool.
+
+Note: This is the server only.
+You need the appropriate client which is hosted at <https://github.com/tbreuss/notes-client>.
 
 ## Install
 
@@ -10,17 +13,18 @@ This is the REST-API Server for the Personal Notes Management Tool.
 
 ## Create/import database
 
-To be done.
+Create a database at your hosting provider and import `config\mysql-dump.sql`.
 
 ## Config
 
 Copy configuration files:
 
-    dev.dist.php -> dev.env.php
-    prod.dist.php -> prod.env.php
-    test.dist.php -> test.env.php
+    cd config
+    cp dev.dist.php dev.env.php
+    cp prod.dist.php prod.env.php
+    cp test.dist.php test.env.php
 
-Edit configuration settings.        
+Open at least the `prod.env.php` config file and edit the settings.
 
 ## Run
 
@@ -33,8 +37,3 @@ You should see:
 
     {"name":"ch.tebe.notes","time":"2018-01-29T22:17:37+01:00","version":"0.5"}  
 
-## Demo
-
-https://notes.tebe.ch  
-Username: github  
-Password: github
