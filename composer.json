@@ -1,5 +1,6 @@
 {
   "require": {
+    "php": ">=7.0.0",
     "catfan/Medoo": "^1.5",
     "phroute/phroute": "^2.1",
     "firebase/php-jwt": "^5.0"
