@@ -1,0 +1,7 @@
+actor: ApiTester
+modules:
+    enabled:
+        - REST:
+            depends: PhpBrowser
+            url: https://api.notes.tebe.ch/api.php
+            part: Json

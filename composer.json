@@ -23,5 +23,8 @@
       "src/db/tag.php",
       "src/db/user.php"
     ]
+  },
+  "require-dev": {
+    "codeception/codeception": "^2.3"
   }
 }
