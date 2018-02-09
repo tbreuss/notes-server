@@ -4,4 +4,5 @@ modules:
         - REST:
             depends: PhpBrowser
             url: https://api.notes.tebe.ch/api.php
+            #url: http://localhost:9999/api.php
             part: Json

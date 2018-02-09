@@ -11,7 +11,8 @@
     }
   },
   "scripts": {
-    "dev": "ENV=dev php -S localhost:9999 -t ./public"
+    "dev": "ENV=dev php -S localhost:9999 -t ./public",
+    "test": "codecept run --steps"
   },
   "autoload": {
     "files": [
