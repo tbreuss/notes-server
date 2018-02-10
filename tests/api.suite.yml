@@ -1,6 +1,14 @@
 actor: ApiTester
 modules:
     enabled:
+        - Db:
+            dsn: 'mysql:host=127.0.0.1;port=8889;dbname=notes_server_test'
+            user: 'root'
+            password: 'root'
+            dump: 'tests/_data/mysql-dump.sql'
+            populate: true
+            cleanup: true
+            reconnect: true
         - REST:
             depends: PhpBrowser
             url: https://api.notes.tebe.ch/api.php
