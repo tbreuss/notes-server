@@ -30,7 +30,11 @@ Open at least the `prod.env.php` config file and edit the settings.
 
     cd notes-server
     composer dev
-    
+
+To prevent timeout issues you can use the `COMPOSER_PROCESS_TIMEOUT` environment variable like this.
+
+    COMPOSER_PROCESS_TIMEOUT=0 composer dev
+
 Open your webbrowser <http://localhost:9999/api.php/ping>
 
 You should see:
