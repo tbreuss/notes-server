@@ -5,14 +5,8 @@
     "phroute/phroute": "^2.1",
     "firebase/php-jwt": "^5.0"
   },
-  "autoload-dev": {
-    "psr-4": {
-      "src\\": "src/"
-    }
-  },
-  "scripts": {
-    "dev": "ENV=dev php -S localhost:9999 -t ./public",
-    "test": "codecept run --steps"
+  "require-dev": {
+    "codeception/codeception": "^2.4"
   },
   "autoload": {
     "files": [
@@ -25,7 +19,13 @@
       "src/db/user.php"
     ]
   },
-  "require-dev": {
-    "codeception/codeception": "^2.3"
+  "autoload-dev": {
+    "psr-4": {
+      "src\\": "src/"
+    }
+  },
+  "scripts": {
+    "dev": "ENV=dev php -S localhost:9999 -t ./public",
+    "test": "codecept run --steps"
   }
 }
