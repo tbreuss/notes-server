@@ -78,9 +78,10 @@ function find_all_tags()
 function find_one(int $id, bool $throwException = true): array
 {
     $sql = "
-        SELECT *
-        FROM articles
-        WHERE id = :id;
+        SELECT a.*, GROUP_CONCAT(t.name) AS tags
+        FROM articles a
+        INNER JOIN tags t ON FIND_IN_SET(t.id, a.tag_ids)
+        WHERE a.id = :id;
     ";
     $article = DB::query($sql, ['id' => $id])->fetch();
     if ($throwException && empty($article)) {
@@ -232,30 +233,37 @@ function validate(array $data): array
 
 function find_all(string $q, array $tags, string $order, int $page, int $itemsPerPage): array
 {
-    $sql = 'SELECT SQL_CALC_FOUND_ROWS id, title, tags FROM articles WHERE 1=1';
+    $sql = "
+        SELECT SQL_CALC_FOUND_ROWS a.id, a.title, GROUP_CONCAT(t.name) AS tags 
+        FROM articles a 
+        INNER JOIN tags t ON FIND_IN_SET(t.id, a.tag_ids)        
+        WHERE 1=1
+    ";
 
     $params = [];
 
     if (!empty($q)) {
         $q = '%' . $q . '%';
-        $sql .= ' AND (title LIKE ? OR content LIKE ?)';
+        $sql .= ' AND (a.title LIKE ? OR a.content LIKE ?)';
         $params[] = $q;
         $params[] = $q;
     }
 
     if (!empty($tags)) {
         foreach ($tags as $tag) {
-            $sql .= ' AND FIND_IN_SET(?, tags)>0';
+            $sql .= ' AND FIND_IN_SET(?, a.tag_ids)>0';
             $params[] = $tag;
         }
     }
 
+    $sql .= ' GROUP BY a.id';
+
     $orders = [
-        'title' => 'title ASC',
-        'changed' => 'modified DESC, title ASC',
-        'created' => 'created DESC, title ASC',
-        'default' => 'title ASC',
-        'popular' => 'views DESC, title ASC'
+        'title' => 'a.title ASC',
+        'changed' => 'a.modified DESC, a.title ASC',
+        'created' => 'a.created DESC, a.title ASC',
+        'default' => 'a.title ASC',
+        'popular' => 'a.views DESC, a.title ASC'
     ];
     if (isset($orders[$order])) {
         $sql .= ' ORDER BY ' . $orders[$order];

@@ -137,9 +137,9 @@ function save_one(string $tag, array $user): int
 function find_selected_tags(string $q, array $tags): array
 {
     $sql = '
-		SELECT t.name, count(a.id) AS frequency
+		SELECT t.id, t.name, count(a.id) AS count
 		FROM tags t
-		INNER JOIN articles a ON FIND_IN_SET(t.name, a.tags)>0 
+		INNER JOIN articles a ON FIND_IN_SET(t.id, a.tag_ids)>0 
 		WHERE 1=1
 	';
 
@@ -154,21 +154,21 @@ function find_selected_tags(string $q, array $tags): array
 
     if (!empty($tags)) {
         foreach ($tags as $tag) {
-            $sql .= ' AND FIND_IN_SET(?, a.tags)>0';
+            $sql .= ' AND FIND_IN_SET(?, a.tag_ids)>0';
             $params[] = $tag;
         }
     }
 
     $sql .= '
-		GROUP BY t.name
-		ORDER BY frequency DESC
+		GROUP BY t.id
+		ORDER BY count DESC, t.name ASC
 		LIMIT 40
 	';
 
     $stmt = DB::prepare($sql);
     $stmt->execute($params);
-    $tags = $stmt->fetchAll(\PDO::FETCH_COLUMN);
+    $tags = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-    sort($tags);
+    //sort($tags);
     return $tags;
 }
