@@ -35,27 +35,6 @@ function config(string $name, $default = null)
     return $current;
 }
 
-function medoo(): Medoo
-{
-    return database();
-}
-
-function database(): Medoo
-{
-    static $database;
-    if (is_null($database)) {
-        $config = config('database', []);
-        $database = new Medoo($config);
-    }
-    return $database;
-}
-
-function pdo(): PDO
-{
-    $database = database();
-    return $database->pdo;
-}
-
 function array_iunique($array) {
     $lowered = array_map('strtolower', $array);
     return array_intersect_key($array, array_unique($lowered));

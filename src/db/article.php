@@ -2,26 +2,69 @@
 
 namespace db\article;
 
+use function common\array_iunique;
+use DB;
+use db\article_to_tag;
 use db\article_views;
 use db\tag;
 use db\user;
 use jwt;
-use function common\{
-    medoo, pdo, array_iunique
-};
 
-function find_selected(array $fields, array $order): array
+function find_popular()
 {
-    $where = [];
-    $where['ORDER'] = $order;
-    $where['LIMIT'] = 5;
-    $articles = medoo()->select('articles', $fields, $where);
+    $sql = "
+        SELECT id, title, views
+        FROM articles 
+        ORDER BY views DESC
+        LIMIT 5;
+    ";
+    $articles = DB::query($sql)->fetchAll();
     return $articles;
 }
 
+function find_latest()
+{
+    $sql = "
+        SELECT id, title, created
+        FROM articles 
+        ORDER BY created DESC
+        LIMIT 5;
+    ";
+    $articles = DB::query($sql)->fetchAll();
+    return $articles;
+}
+
+function find_modified()
+{
+    $sql = "
+        SELECT id, title, modified
+        FROM articles 
+        ORDER BY modified DESC
+        LIMIT 5;
+    ";
+    $articles = DB::query($sql)->fetchAll();
+    return $articles;
+}
+
+function find_liked()
+{
+    $sql = "
+        SELECT id, title, likes
+        FROM articles 
+        ORDER BY likes DESC
+        LIMIT 5;
+    ";
+    $articles = DB::query($sql)->fetchAll();
+    return $articles;
+}
+
+/**
+ * @return array
+ * @deprecated
+ */
 function find_all_tags()
 {
-    $columns = medoo()->select('articles', 'tags');
+    $columns = DB::query("SELECT tags FROM articles;")->fetchAll(DB::instance()::FETCH_COLUMN);
     $tags = [];
     foreach ($columns as $strTags) {
         $arrTags = explode(',', $strTags);
@@ -34,7 +77,12 @@ function find_all_tags()
 
 function find_one(int $id, bool $throwException = true): array
 {
-    $article = medoo()->get('articles', '*', ['id' => $id]);
+    $sql = "
+        SELECT *
+        FROM articles
+        WHERE id = :id;
+    ";
+    $article = DB::query($sql, ['id' => $id])->fetch();
     if ($throwException && empty($article)) {
         throw new \Exception('Not found');
     }
@@ -50,27 +98,58 @@ function find_one(int $id, bool $throwException = true): array
 function increase_views(int $id)
 {
     $user = jwt\get_user_from_token();
-    $data = [
+    if (empty($user)) {
+        return;
+    }
+
+    $sql = "
+        SELECT COUNT(*) AS count
+        FROM article_views
+        WHERE article_id = :article_id
+        AND user_id = :user_id
+        AND created = :created;
+    ";
+
+    $params = [
         'article_id' => $id,
         'user_id' => $user['id'],
         'created' => date('Y-m-d')
     ];
-    $count = medoo()->count('article_views', $data);
-    if ($count == 0) {
-        medoo()->insert('article_views', $data);
-        medoo()->update('articles', ['views[+]' => 1], ['id' => $id]);
+
+    $count = DB::query($sql, $params)->fetchColumn();
+    if (empty($count)) {
+
+        $sql = "INSERT INTO article_views VALUES (:article_id, :user_id, :created);";
+        DB::exec($sql, $params);
+
+        $sql = "UPDATE articles SET views = views + 1 WHERE id = :id;";
+        DB::exec($sql, ['id' => $id]);
     }
+
 }
 
 function insert(array $data): int
 {
+    // title, content, tags
+
     $user = jwt\get_user_from_token();
-    $data['created'] = date('Y-m-d H:i:s');
+
+    $tags = explode_tags($data['tags']);
+    $tag_ids = tag\save_all($tags, $user);
+
     $data['created_by'] = $user['id'];
-    $data['tags'] = sanitize_tags($data['tags']);
-    medoo()->insert('articles', $data);
-    $id = medoo()->id();
-    tag\save_all($data['tags'], $user);
+    $data['tags'] = implode(',', $tags);
+    $data['tag_ids'] = implode(',', $tag_ids);
+
+    $sql = "
+        INSERT INTO articles (title, content, tags, tag_ids, created, created_by)
+        VALUES (:title, :content, :tags, :tag_ids, NOW(), :created_by);
+    ";
+
+    DB::exec($sql, $data);
+    $id = DB::lastInsertId();
+    article_to_tag\save_tags($id, $tag_ids);
+
     return $id;
 }
 
@@ -83,11 +162,29 @@ function update($id, array $data): int
         return 0;
     }
 
+    $tags = explode_tags($data['tags']);
+    $tag_ids = tag\update_all($old['tags'], $tags, $user);
+
     $data['modified'] = date('Y-m-d H:i:s');
     $data['modified_by'] = $user['id'];
-    $data['tags'] = sanitize_tags($data['tags']);
-    medoo()->update('articles', $data, ['id' => $id]);
-    tag\update_all($old['tags'], explode(',', $data['tags']), $user);
+    $data['tags'] = implode(',', $tags);
+    $data['tag_ids'] = implode(',', $tag_ids);
+    $data['id'] = $id;
+
+    $sql = "
+        UPDATE articles
+        SET 
+          title = :title,
+          content = :content,
+          tags = :tags,
+          tag_ids = :tag_ids,
+          modified = NOW(),
+          modified_by = :modified_by
+        WHERE id = :id;
+    ";
+
+    DB::exec($sql, $data);
+    article_to_tag\save_tags($id, $tag_ids);
     return 1;
 }
 
@@ -114,7 +211,8 @@ function delete($id)
     $user = jwt\get_user_from_token();
     $article = find_one($id, true);
     tag\update_all($article['tags'], [], $user);
-    medoo()->delete('articles', ['id' => $id]);
+    article_to_tag\delete_tags($id);
+    DB::exec("DELETE FROM articles WHERE id=:id;", ['id' => $id]);
     return true;
 }
 
@@ -166,10 +264,7 @@ function find_all(string $q, array $tags, string $order, int $page, int $itemsPe
 
     $sql .= ' LIMIT ' . ($page - 1) * $itemsPerPage . ', ' . $itemsPerPage;
 
-    $stmt = pdo()->prepare($sql);
-    $stmt->execute($params);
-
-    $articles = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    $articles = DB::query($sql, $params)->fetchAll();
 
     foreach ($articles as $i => $a) {
         $articles[$i]['tags'] = explode(',', $a['tags']);
@@ -181,9 +276,7 @@ function find_all(string $q, array $tags, string $order, int $page, int $itemsPe
 function found_rows(): int
 {
     $sql = 'SELECT FOUND_ROWS()';
-    $stmt = pdo()->prepare($sql);
-    $stmt->execute();
-    $foundRows = $stmt->fetchColumn();
+    $foundRows = DB::query($sql)->fetchColumn();
     return $foundRows;
 }
 
@@ -197,10 +290,10 @@ function paging(int $totalCount, int $currentPage, int $itemsPerPage): array
     ];
 }
 
-function sanitize_tags(string $strtags): string
+function explode_tags(string $strtags): array
 {
     $tags = explode(',', $strtags);
-    $sanitized = array_map('trim', $tags);
-    $sanitized = array_iunique($sanitized);
-    return implode(',', $sanitized);
+    $trimed = array_map('trim', $tags);
+    $unique = array_iunique($trimed);
+    return $unique;
 }

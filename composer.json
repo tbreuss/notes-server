@@ -1,7 +1,6 @@
 {
   "require": {
     "php": ">=7.0.0",
-    "catfan/Medoo": "^1.5",
     "phroute/phroute": "^2.1",
     "firebase/php-jwt": "^5.0"
   },
@@ -13,7 +12,9 @@
       "src/common.php",
       "src/jwt.php",
       "src/request.php",
+      "src/db.php",
       "src/db/article.php",
+      "src/db/article_to_tag.php",
       "src/db/article_views.php",
       "src/db/tag.php",
       "src/db/user.php"

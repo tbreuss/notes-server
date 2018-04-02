@@ -2,19 +2,18 @@
 
 namespace db\article_views;
 
-use function common\{
-    medoo
-};
+use DB;
 
 function find_latest_date(int $articleId): string
 {
-    $date = medoo()->get(
-        'article_views',
-        'created',
-        [
-            'article_id' => $articleId,
-            'ORDER' => ['created' => 'DESC']
-        ]
-    );
-    return $date;
+    $sql = "
+        SELECT created
+        FROM article_views
+        WHERE article_id = :article_id
+        ORDER BY created DESC
+        LIMIT 1;
+    ";
+
+    $date = DB::query($sql, ['article_id' => $articleId])->fetchColumn();
+    return empty($date) ? '' : $date;
 }

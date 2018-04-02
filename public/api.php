@@ -12,7 +12,12 @@ use Phroute\Phroute\RouteCollector;
 
 set_error_handler("exception_error_handler");
 
+
 try {
+
+    DB::init(common\config('database', []));
+
+    $tags = db\article\find_all_tags();
 
     #sleep(1);
 
@@ -50,6 +55,7 @@ function get_router()
 {
     $router = new RouteCollector();
 
+    /*
     $router->filter('auth', function(){
         $jwt = jwt\get_bearer_token();
         if (empty($jwt)) {
@@ -57,6 +63,7 @@ function get_router()
             exit;
         }
     });
+    */
 
     // Public
     $router->get('/ping', function (): array {
@@ -167,19 +174,19 @@ function get_router()
     }, ['before' => 'auth']);
 
     $router->get('/popular', function (): array {
-        return db\article\find_selected(['id', 'title', 'views'], ['views' => 'DESC']);
+        return db\article\find_popular();
     }, ['before' => 'auth']);
 
     $router->get('/latest', function (): array {
-        return db\article\find_selected(['id', 'title', 'created'], ['created' => 'DESC']);
+        return db\article\find_latest();
     }, ['before' => 'auth']);
 
     $router->get('/modified', function (): array {
-        return db\article\find_selected(['id', 'title', 'modified'], ['modified' => 'DESC']);
+        return db\article\find_modified();
     }, ['before' => 'auth']);
 
     $router->get('/liked', function (): array {
-        return db\article\find_selected(['id', 'title', 'likes'], ['likes' => 'DESC']);
+        return db\article\find_liked();
     }, ['before' => 'auth']);
 
     $router->post('/upload', function () {

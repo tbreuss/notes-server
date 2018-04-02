@@ -2,97 +2,127 @@
 
 namespace db\tag;
 
-use function common\{
-    medoo, pdo
-};
+use DB;
 
 function find_all(string $sort): array
 {
     $orders = [
-        'name' => ['name' => 'ASC'],
-        'frequency' => ['frequency' => 'DESC', 'name' => 'ASC'],
-        'changed' => ['modified' => 'DESC', 'name' => 'ASC'],
-        'created' => ['created' => 'DESC', 'name' => 'ASC'],
-        'default' => ['name' => 'ASC']
+        'name' => 'name ASC',
+        'frequency' => 'frequency DESC, name ASC',
+        'changed' => 'modified DESC, name ASC',
+        'created' => 'created DESC, name ASC',
+        'default' => 'name ASC'
     ];
-    $order = isset($orders[$sort]) ? $orders[$sort] : $orders['default'];
-    $articles = medoo()->select('tags', ['id', 'name', 'frequency'], ['ORDER' => $order]);
-    return $articles;
+    $order = $orders[$sort] ?? $orders['default'];
+
+    $sql = "
+        SELECT id, name, frequency
+        FROM tags
+        ORDER BY {$order};
+    ";
+
+    $tags = DB::query($sql)->fetchAll();
+    return $tags;
 }
 
 function find_one(int $id): array
 {
-    $article = medoo()->get('tags', '*', ['id' => $id]);
-    return $article;
+    $sql = "
+        SELECT *
+        FROM tags
+        WHERE id = :id;
+    ";
+    $tag = DB::query($sql, ['id' => $id])->fetch();
+    return empty($tag) ? [] : $tag;
 }
 
 function update_all(array $oldTags, array $newTags, array $user)
 {
-    $medoo = medoo();
-
     $tagsToRemove = array_udiff($oldTags, $newTags, "strcasecmp");
     $tagsToAdd = array_udiff($newTags, $oldTags, "strcasecmp");
 
     foreach ($tagsToRemove as $tag) {
-        $medoo->update('tags', [
-            'frequency[-]' => 1,
-            'modified' => date('Y-m-d H:i:s'),
-            'modified_by' => $user['id']
-        ], [
+        $sql = "
+            UPDATE tags
+            SET 
+                frequency = frequency -1,
+                modified = NOW(),
+                modified_by = :modified_by
+            WHERE name = :name;              
+        ";
+        $params = [
+            'modified_by' => $user['id'],
             'name' => $tag
-        ]);
+        ];
+        DB::exec($sql, $params);
     }
 
     foreach ($tagsToAdd as $tag) {
-        $medoo->insert('tags', [
-            'name' => $tag,
-            'frequency' => 1,
-            'created' => date('Y-m-d H:i:s'),
-            'created_by' => $user['id']
-        ]);
+        save_one($tag, $user);
     }
 
     delete_all_unused();
+
+    $ids = DB::query("SELECT id FROM tags WHERE name = :name;", ['name' => $newTags])
+        ->fetchAll(DB::instance()::FETCH_COLUMN);
+
+    return $ids;
+}
+
+function find_ids(array $newTags)
+{
+
 }
 
 function delete_all_unused()
 {
-    medoo()->delete('tags', [
-        'frequency[<=]' => 0
-    ]);
+    $sql = "
+        DELETE FROM tags
+        WHERE frequency <= 0;
+    ";
+    $rowCount = DB::exec($sql);
+    return $rowCount;
 }
 
-function save_all(string $strtags, array $user)
+function save_all(array $tags, array $user): array
 {
-    $tags = explode(',', $strtags);
+    $ids = [];
     foreach ($tags as $tag) {
-        save_one($tag, $user);
+        $ids[] = save_one($tag, $user);
     }
+    return $ids;
 }
 
 function save_one(string $tag, array $user): int
 {
-    $medoo = medoo();
-    $id = $medoo->get('tags', 'id', [
-        'name' => $tag
-    ]);
+    $sql = "
+        SELECT id
+        FROM tags
+        WHERE name = :name;
+    ";
+    $id = (int)DB::query($sql, ['name' => $tag])->fetch();
+
     if ($id > 0) {
-        $medoo->update('tags', [
-            'frequency[+]' => 1,
-            'modified' => date('Y-m-d H:i:s'),
-            'modified_by' => $user['id']
-        ], [
-            'id' => $id
-        ]);
+        $sql = "
+            UPDATE tags
+            SET
+              frequency = frequency + 1,
+              modified = NOW(),
+              modified_by = :modified_by
+            WHERE id = :id;
+        ";
+        DB::exec($sql, ['id' => $id]);
         return $id;
     } else {
-        $medoo->insert('tags', [
+        $sql = "
+            INSERT INTO tags (name, frequency, created, created_by)
+            VALUE (:name, 1, NOW(), :created_by);
+        ";
+        DB::exec($sql, [
             'name' => $tag,
-            'frequency' => 1,
-            'created' => date('Y-m-d H:i:s'),
             'created_by' => $user['id']
         ]);
-        return $medoo->id();
+        return DB::lastInsertId();
     }
 }
 
@@ -127,7 +157,7 @@ function find_selected_tags(string $q, array $tags): array
 		LIMIT 40
 	';
 
-    $stmt = pdo()->prepare($sql);
+    $stmt = DB::prepare($sql);
     $stmt->execute($params);
     $tags = $stmt->fetchAll(\PDO::FETCH_COLUMN);
 
