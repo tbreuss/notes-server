@@ -55,7 +55,6 @@ function get_router()
 {
     $router = new RouteCollector();
 
-    /*
     $router->filter('auth', function(){
         $jwt = jwt\get_bearer_token();
         if (empty($jwt)) {
@@ -63,7 +62,6 @@ function get_router()
             exit;
         }
     });
-    */
 
     // Public
     $router->get('/ping', function (): array {
