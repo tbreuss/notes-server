@@ -190,6 +190,7 @@ class DB
             if (!is_array($value)) {
                 continue;
             }
+            $key = ltrim($key, ':');
             $in = [];
             foreach ($value as $i => $item) {
                 $newKey = ":" . $key . "_" . $i;

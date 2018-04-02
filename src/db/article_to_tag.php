@@ -42,10 +42,12 @@ function save_tags(int $articleId, array $tagIds)
         AND tag_id NOT IN (:tag_ids);
     ";
 
-    DB::prepare($sql)->execute([
-        ':article_id' => $articleId,
-        ':tag_ids' => implode(',', $tagIds)
+    DB::exec($sql, [
+        'article_id' => $articleId,
+        'tag_ids' => $tagIds
     ]);
+
+    $test = DB::getLastQuery();
 
     $selectSql = "
         SELECT COUNT(*) AS count
@@ -64,37 +66,17 @@ function save_tags(int $articleId, array $tagIds)
     foreach ($tagIds as $tagId) {
 
         $selectStmt->execute([
-            ':article_id' => $articleId,
-            ':tag_id' => $tagId
+            'article_id' => $articleId,
+            'tag_id' => $tagId
         ]);
 
         $count = $selectStmt->fetchColumn();
         if ($count == 0) {
             $insertStmt->execute([
-                ':article_id' => $articleId,
-                ':tag_id' => $tagId
+                'article_id' => $articleId,
+                'tag_id' => $tagId
             ]);
         }
 
     }
 }
-
-/*
- * $sql = "UPDATE articles SET tag_ids = :tag_ids_csv WHERE id = :id;";
-$stmt = PDO::prepare($sql);
-
-// Update
-foreach ($articles as $id => $article_tags) {
-    $tag_ids = [];
-    foreach ($article_tags as $article_tag) {
-        if (!isset($tags[$article_tag])) {
-            die ('xxx');
-        }
-        $tag_ids[] = $tags[$article_tag];
-    }
-
-    $bool = $stmt->execute(array(':id' => $id, ':tag_ids_csv' => implode(',', $tag_ids)));
-
-}
-
- */

@@ -63,7 +63,12 @@ function update_all(array $oldTags, array $newTags, array $user)
 
     delete_all_unused();
 
-    $ids = DB::query("SELECT id FROM tags WHERE name = :name;", ['name' => $newTags])
+    if (empty($newTags)) {
+        return [];
+    }
+
+    $sql = "SELECT id FROM tags WHERE name IN (:names);";
+    $ids = DB::query($sql, ['names' => $newTags])
         ->fetchAll(DB::instance()::FETCH_COLUMN);
 
     return $ids;
@@ -111,7 +116,10 @@ function save_one(string $tag, array $user): int
               modified_by = :modified_by
             WHERE id = :id;
         ";
-        DB::exec($sql, ['id' => $id]);
+        DB::exec($sql, [
+            'id' => $id,
+            'modified_by' => $user['id']
+        ]);
         return $id;
     } else {
         $sql = "

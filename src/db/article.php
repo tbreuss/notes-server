@@ -165,7 +165,6 @@ function update($id, array $data): int
     $tags = explode_tags($data['tags']);
     $tag_ids = tag\update_all($old['tags'], $tags, $user);
 
-    $data['modified'] = date('Y-m-d H:i:s');
     $data['modified_by'] = $user['id'];
     $data['tags'] = implode(',', $tags);
     $data['tag_ids'] = implode(',', $tag_ids);
@@ -264,7 +263,9 @@ function find_all(string $q, array $tags, string $order, int $page, int $itemsPe
 
     $sql .= ' LIMIT ' . ($page - 1) * $itemsPerPage . ', ' . $itemsPerPage;
 
-    $articles = DB::query($sql, $params)->fetchAll();
+    $stmt = DB::prepare($sql);
+    $stmt->execute($params);
+    $articles = $stmt->fetchAll();
 
     foreach ($articles as $i => $a) {
         $articles[$i]['tags'] = explode(',', $a['tags']);
