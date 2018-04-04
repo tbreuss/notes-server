@@ -11,6 +11,7 @@ modules:
             reconnect: true
         - REST:
             depends: PhpBrowser
-            url: https://api.notes.tebe.ch/api.php
-            #url: http://localhost:9999/api.php
+            #url: https://api.notes.tebe.ch/api.php
+            # start internal php server in test environment before
+            url: http://localhost:9999/api.php
             part: Json

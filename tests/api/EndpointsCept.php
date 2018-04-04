@@ -6,8 +6,8 @@ $I->wantTo('authenticate a user');
 $I->haveHttpHeader('content-type', 'application/x-www-form-urlencoded');
 $I->haveHttpHeader('Content-Type', 'application/json');
 $I->sendPOST('/auth/login', json_encode([
-    'username' => 'guest',
-    'password' => 'guest'
+    'username' => 'user',
+    'password' => 'user'
 ]));
 $I->seeResponseCodeIs(200);
 $I->seeResponseIsJson();
