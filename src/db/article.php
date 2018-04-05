@@ -129,27 +129,46 @@ function increase_views(int $id)
 
 }
 
+function save_tags(string $tags, int $id, array $user)
+{
+    // Doubletten entfernen
+    $tags = explode_tags($tags);
+
+    // Tags in Tabelle speichern
+    $tagIds = tag\save_all($tags, $user);
+
+    // Tag-IDs in Zwischentabelle speichern
+    article_to_tag\save_tags($id, $tagIds);
+
+    // Tag-IDs in Artikel aktualisieren
+    update_tags($tagIds, $id);
+
+    // Counter in Tags aktualisieren
+    tag\update_frequencies();
+
+    // Tags mit Counter=0 entfernen
+    tag\delete_all_unused();
+}
+
 function insert(array $data): int
 {
-    // title, content, tags
-
     $user = jwt\get_user_from_token();
 
-    $tags = explode_tags($data['tags']);
-    $tag_ids = tag\save_all($tags, $user);
-
-    $data['created_by'] = $user['id'];
-    $data['tags'] = implode(',', $tags);
-    $data['tag_ids'] = implode(',', $tag_ids);
+    $tags = $data['tags'];
+    unset($data['tags']);
 
     $sql = "
-        INSERT INTO articles (title, content, tags, tag_ids, created, created_by)
-        VALUES (:title, :content, :tags, :tag_ids, NOW(), :created_by);
+        INSERT INTO articles (title, content, created, created_by)
+        VALUES (:title, :content, NOW(), :created_by);
     ";
 
+    $data['created_by'] = $user['id'];
+
     DB::exec($sql, $data);
+
     $id = DB::lastInsertId();
-    article_to_tag\save_tags($id, $tag_ids);
+
+    save_tags($tags, $id, $user);
 
     return $id;
 }
@@ -163,12 +182,10 @@ function update($id, array $data): int
         return 0;
     }
 
-    $tags = explode_tags($data['tags']);
-    $tag_ids = tag\update_all($old['tags'], $tags, $user);
+    $tags = $data['tags'];
+    unset($data['tags']);
 
     $data['modified_by'] = $user['id'];
-    $data['tags'] = implode(',', $tags);
-    $data['tag_ids'] = implode(',', $tag_ids);
     $data['id'] = $id;
 
     $sql = "
@@ -176,16 +193,35 @@ function update($id, array $data): int
         SET 
           title = :title,
           content = :content,
-          tags = :tags,
-          tag_ids = :tag_ids,
           modified = NOW(),
           modified_by = :modified_by
         WHERE id = :id;
     ";
 
     DB::exec($sql, $data);
-    article_to_tag\save_tags($id, $tag_ids);
+
+    save_tags($tags, $id, $user);
+
     return 1;
+}
+
+/**
+ * @param array $tags
+ * @param int $id
+ * @return int
+ */
+function update_tags(array $tags, int $id)
+{
+    $sql = "
+        UPDATE articles
+        SET tag_ids = :tags
+        WHERE id = :id;
+    ";
+    $params = [
+        'tags' => implode(',', $tags),
+        'id' => $id
+    ];
+    return DB::exec($sql, $params);
 }
 
 function is_identic(array $old, array $new)
@@ -208,12 +244,17 @@ function is_identic(array $old, array $new)
 
 function delete($id)
 {
-    $user = jwt\get_user_from_token();
-    $article = find_one($id, true);
-    tag\update_all($article['tags'], [], $user);
     article_to_tag\delete_tags($id);
-    DB::exec("DELETE FROM articles WHERE id=:id;", ['id' => $id]);
-    return true;
+
+    article_views\delete_by_article_id($id);
+
+    // Counter in Tags aktualisieren
+    tag\update_frequencies();
+
+    // Tags mit Counter=0 entfernen
+    tag\delete_all_unused();
+
+    return DB::exec("DELETE FROM articles WHERE id=:id;", ['id' => $id]);
 }
 
 function validate(array $data): array

@@ -47,8 +47,6 @@ function save_tags(int $articleId, array $tagIds)
         'tag_ids' => $tagIds
     ]);
 
-    $test = DB::getLastQuery();
-
     $selectSql = "
         SELECT COUNT(*) AS count
         FROM article_to_tag

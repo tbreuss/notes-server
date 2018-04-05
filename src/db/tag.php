@@ -74,11 +74,6 @@ function update_all(array $oldTags, array $newTags, array $user)
     return $ids;
 }
 
-function find_ids(array $newTags)
-{
-
-}
-
 function delete_all_unused()
 {
     $sql = "
@@ -105,7 +100,7 @@ function save_one(string $tag, array $user): int
         FROM tags
         WHERE name = :name;
     ";
-    $id = (int)DB::query($sql, ['name' => $tag])->fetch();
+    $id = (int)DB::query($sql, ['name' => $tag])->fetchColumn();
 
     if ($id > 0) {
         $sql = "
@@ -171,4 +166,18 @@ function find_selected_tags(string $q, array $tags): array
 
     //sort($tags);
     return $tags;
+}
+
+function update_frequencies()
+{
+    $sql = "
+        UPDATE tags
+        SET frequency = (
+        SELECT COUNT(tag_id)
+            FROM article_to_tag
+            WHERE tags.id = article_to_tag.tag_id
+            GROUP BY tag_id
+        )
+    ";
+    return DB::exec($sql);
 }
