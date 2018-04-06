@@ -5,7 +5,8 @@
     "firebase/php-jwt": "^5.0"
   },
   "require-dev": {
-    "codeception/codeception": "^2.4"
+    "codeception/codeception": "^2.4",
+    "justinrainbow/json-schema": "^5.2"
   },
   "autoload": {
     "files": [
@@ -27,6 +28,9 @@
   },
   "scripts": {
     "dev": "ENV=dev php -S localhost:9999 -t ./public",
-    "test": "codecept run --steps"
+    "test": [
+      "ENV=test php -S localhost:9999 -t ./public >/dev/null 2>&1 & echo $!",
+      "codecept -v run"
+    ]
   }
 }
