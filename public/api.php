@@ -17,8 +17,6 @@ try {
 
     DB::init(common\config('database', []));
 
-    $tags = db\article\find_all_tags();
-
     #sleep(1);
 
     if (request\method() === 'OPTIONS') {
