@@ -106,7 +106,7 @@ function get_router()
         ];
     }, ['before' => 'auth']);
 
-    $router->get('/articles/{id}', function (int $id): array {
+    $router->get('/articles/{id:\d+}', function (int $id): array {
         $user = jwt\get_user_from_token();
         $article = db\article\find_one($id);
         db\article\increase_views($id, $user['id']);
@@ -126,7 +126,7 @@ function get_router()
         return $errors;
     }, ['before' => 'auth']);
 
-    $router->put('/articles/{id}', function (int $id): array {
+    $router->put('/articles/{id:\d+}', function (int $id): array {
         $user = jwt\get_user_from_token();
         $data = request\php_input();
         $errors = db\article\validate($data);
@@ -143,8 +143,24 @@ function get_router()
         return $errors;
     }, ['before' => 'auth']);
 
-    $router->delete('/articles/{id}', function (int $id) {
+    $router->delete('/articles/{id:\d+}', function (int $id) {
         db\article\delete($id);
+    }, ['before' => 'auth']);
+
+    $router->get('/articles/popular', function (): array {
+        return db\article\find_popular();
+    }, ['before' => 'auth']);
+
+    $router->get('/articles/latest', function (): array {
+        return db\article\find_latest();
+    }, ['before' => 'auth']);
+
+    $router->get('/articles/modified', function (): array {
+        return db\article\find_modified();
+    }, ['before' => 'auth']);
+
+    $router->get('/articles/liked', function (): array {
+        return db\article\find_liked();
     }, ['before' => 'auth']);
 
     $router->get('/selectedtags', function (): array {
@@ -159,7 +175,7 @@ function get_router()
         return db\user\find_all($sort);
     }, ['before' => 'auth']);
 
-    $router->get('/users/{id}', function (int $id): array {
+    $router->get('/users/{id:\d+}', function (int $id): array {
         return db\user\find_by_user_ids([$id]);
     }, ['before' => 'auth']);
 
@@ -168,24 +184,8 @@ function get_router()
         return db\tag\find_all($sort);
     }, ['before' => 'auth']);
 
-    $router->get('/tags/{id}', function (int $id): array {
+    $router->get('/tags/{id:\d+}', function (int $id): array {
         return db\tag\find_one($id);
-    }, ['before' => 'auth']);
-
-    $router->get('/popular', function (): array {
-        return db\article\find_popular();
-    }, ['before' => 'auth']);
-
-    $router->get('/latest', function (): array {
-        return db\article\find_latest();
-    }, ['before' => 'auth']);
-
-    $router->get('/modified', function (): array {
-        return db\article\find_modified();
-    }, ['before' => 'auth']);
-
-    $router->get('/liked', function (): array {
-        return db\article\find_liked();
     }, ['before' => 'auth']);
 
     $router->post('/upload', function () {
