@@ -8,11 +8,11 @@ function find_tag_ids(int $articleId)
 {
     $sql = "
         SELECT tag_id
-        FROM articles
+        FROM article_to_tag
         WHERE article_id = :article_id;
     ";
     $params = ['article_id' => $articleId];
-    $ids = DB::query($sql, $params)->fetchColumn();
+    $ids = DB::query($sql, $params)->fetchAll(DB::instance()::FETCH_COLUMN);
     return $ids;
 }
 

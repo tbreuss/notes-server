@@ -170,7 +170,7 @@ function find_selected_tags(string $q, array $tags): array
     return $tags;
 }
 
-function update_frequencies(array $ids)
+function update_frequencies(array $ids = [])
 {
     $sql = "
         UPDATE tags
@@ -180,7 +180,9 @@ function update_frequencies(array $ids)
             WHERE tags.id = article_to_tag.tag_id
             GROUP BY tag_id
         )
-        WHERE id IN (:ids);
     ";
+    if (!empty($ids)) {
+        $sql .= " WHERE id IN (:ids)";
+    }
     return DB::exec($sql, ['ids' => $ids]);
 }
