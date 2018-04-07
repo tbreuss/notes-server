@@ -107,16 +107,18 @@ function get_router()
     }, ['before' => 'auth']);
 
     $router->get('/articles/{id}', function (int $id): array {
+        $user = jwt\get_user_from_token();
         $article = db\article\find_one($id);
-        db\article\increase_views($id);
+        db\article\increase_views($id, $user['id']);
         return $article;
     }, ['before' => 'auth']);
 
     $router->post('/add-article', function (): array {
+        $user = jwt\get_user_from_token();
         $data = request\php_input();
         $errors = db\article\validate($data);
         if (empty($errors)) {
-            db\article\insert($data);
+            db\article\insert($data, $user['id']);
             header('HTTP/1.0 201 Created');
             return [];
         }
@@ -125,10 +127,11 @@ function get_router()
     }, ['before' => 'auth']);
 
     $router->put('/articles/{id}', function (int $id): array {
+        $user = jwt\get_user_from_token();
         $data = request\php_input();
         $errors = db\article\validate($data);
         if (empty($errors)) {
-            $updated = db\article\update($id, $data);
+            $updated = db\article\update($id, $data, $user['id']);
             if ($updated) {
                 header('HTTP/1.0 201 Created');
             } else {

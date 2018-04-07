@@ -4,6 +4,18 @@ namespace db\article_to_tag;
 
 use DB;
 
+function find_tag_ids(int $articleId)
+{
+    $sql = "
+        SELECT tag_id
+        FROM articles
+        WHERE article_id = :article_id;
+    ";
+    $params = ['article_id' => $articleId];
+    $ids = DB::query($sql, $params)->fetchColumn();
+    return $ids;
+}
+
 function insert(int $articleId, array $tagIds)
 {
     $sql = 'INSERT INTO article_to_tag VALUES (:article_id, :tag_id, NOW())';

@@ -8,7 +8,6 @@ use db\article_to_tag;
 use db\article_views;
 use db\tag;
 use db\user;
-use jwt;
 
 function find_popular()
 {
@@ -96,13 +95,8 @@ function find_one(int $id, bool $throwException = true): array
     return $article;
 }
 
-function increase_views(int $id)
+function increase_views(int $id, int $userId)
 {
-    $user = jwt\get_user_from_token();
-    if (empty($user)) {
-        return;
-    }
-
     $sql = "
         SELECT COUNT(*) AS count
         FROM article_views
@@ -113,7 +107,7 @@ function increase_views(int $id)
 
     $params = [
         'article_id' => $id,
-        'user_id' => $user['id'],
+        'user_id' => $userId,
         'created' => date('Y-m-d')
     ];
 
@@ -129,31 +123,29 @@ function increase_views(int $id)
 
 }
 
-function save_tags(string $tags, int $id, array $user)
+function save_tags(string $tags, int $articleId, int $userId, array $oldTagIds)
 {
     // Doubletten entfernen
     $tags = explode_tags($tags);
 
     // Tags in Tabelle speichern
-    $tagIds = tag\save_all($tags, $user);
+    $tagIds = tag\save_all($tags, $userId);
 
     // Tag-IDs in Zwischentabelle speichern
-    article_to_tag\save_tags($id, $tagIds);
+    article_to_tag\save_tags($articleId, $tagIds);
 
     // Tag-IDs in Artikel aktualisieren
-    update_tags($tagIds, $id);
+    update_tag_ids($tagIds, $articleId);
 
     // Counter in Tags aktualisieren
-    tag\update_frequencies();
+    tag\update_frequencies(array_merge($tagIds, $oldTagIds));
 
     // Tags mit Counter=0 entfernen
     tag\delete_all_unused();
 }
 
-function insert(array $data): int
+function insert(array $data, int $userId): int
 {
-    $user = jwt\get_user_from_token();
-
     $tags = $data['tags'];
     unset($data['tags']);
 
@@ -162,20 +154,19 @@ function insert(array $data): int
         VALUES (:title, :content, NOW(), :created_by);
     ";
 
-    $data['created_by'] = $user['id'];
+    $data['created_by'] = $userId;
 
     DB::exec($sql, $data);
 
     $id = DB::lastInsertId();
 
-    save_tags($tags, $id, $user);
+    save_tags($tags, $id, $userId, []);
 
     return $id;
 }
 
-function update($id, array $data): int
+function update($id, array $data, int $userId): int
 {
-    $user = jwt\get_user_from_token();
     $old = find_one($id, true);
 
     if (is_identic($old, $data)) {
@@ -185,7 +176,7 @@ function update($id, array $data): int
     $tags = $data['tags'];
     unset($data['tags']);
 
-    $data['modified_by'] = $user['id'];
+    $data['modified_by'] = $userId;
     $data['id'] = $id;
 
     $sql = "
@@ -200,17 +191,17 @@ function update($id, array $data): int
 
     DB::exec($sql, $data);
 
-    save_tags($tags, $id, $user);
+    save_tags($tags, $id, $userId, explode(',', $old['tag_ids']));
 
     return 1;
 }
 
 /**
- * @param array $tags
+ * @param array $tagIds
  * @param int $id
  * @return int
  */
-function update_tags(array $tags, int $id)
+function update_tag_ids(array $tagIds, int $id)
 {
     $sql = "
         UPDATE articles
@@ -218,7 +209,7 @@ function update_tags(array $tags, int $id)
         WHERE id = :id;
     ";
     $params = [
-        'tags' => implode(',', $tags),
+        'tags' => implode(',', $tagIds),
         'id' => $id
     ];
     return DB::exec($sql, $params);
@@ -244,12 +235,13 @@ function is_identic(array $old, array $new)
 
 function delete($id)
 {
+    $tagIds = article_to_tag\find_tag_ids($id);
     article_to_tag\delete_tags($id);
 
     article_views\delete_by_article_id($id);
 
     // Counter in Tags aktualisieren
-    tag\update_frequencies();
+    tag\update_frequencies($tagIds);
 
     // Tags mit Counter=0 entfernen
     tag\delete_all_unused();

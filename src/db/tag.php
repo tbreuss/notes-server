@@ -84,16 +84,16 @@ function delete_all_unused()
     return $rowCount;
 }
 
-function save_all(array $tags, array $user): array
+function save_all(array $tags, int $userId): array
 {
     $ids = [];
     foreach ($tags as $tag) {
-        $ids[] = save_one($tag, $user);
+        $ids[] = save_one($tag, $userId);
     }
     return $ids;
 }
 
-function save_one(string $tag, array $user): int
+function save_one(string $tag, int $userId): int
 {
     $sql = "
         SELECT id
@@ -103,6 +103,7 @@ function save_one(string $tag, array $user): int
     $id = (int)DB::query($sql, ['name' => $tag])->fetchColumn();
 
     if ($id > 0) {
+        /*
         $sql = "
             UPDATE tags
             SET
@@ -115,6 +116,7 @@ function save_one(string $tag, array $user): int
             'id' => $id,
             'modified_by' => $user['id']
         ]);
+        */
         return $id;
     } else {
         $sql = "
@@ -123,7 +125,7 @@ function save_one(string $tag, array $user): int
         ";
         DB::exec($sql, [
             'name' => $tag,
-            'created_by' => $user['id']
+            'created_by' => $userId
         ]);
         return DB::lastInsertId();
     }
@@ -168,7 +170,7 @@ function find_selected_tags(string $q, array $tags): array
     return $tags;
 }
 
-function update_frequencies()
+function update_frequencies(array $ids)
 {
     $sql = "
         UPDATE tags
@@ -178,6 +180,7 @@ function update_frequencies()
             WHERE tags.id = article_to_tag.tag_id
             GROUP BY tag_id
         )
+        WHERE id IN (:ids);
     ";
-    return DB::exec($sql);
+    return DB::exec($sql, ['ids' => $ids]);
 }
