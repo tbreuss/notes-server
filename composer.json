@@ -6,7 +6,8 @@
   },
   "require-dev": {
     "codeception/codeception": "^2.4",
-    "justinrainbow/json-schema": "^5.2"
+    "justinrainbow/json-schema": "^5.2",
+    "phing/phing": "^2.16"
   },
   "autoload": {
     "files": [
