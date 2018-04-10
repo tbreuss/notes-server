@@ -32,6 +32,7 @@
     "test": [
       "ENV=test php -S localhost:9999 -t ./public >/dev/null 2>&1 & echo $!",
       "codecept -v run"
-    ]
+    ],
+    "build": "phing src"
   }
 }

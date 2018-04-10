@@ -41,3 +41,8 @@ You should see:
 
     {"name":"ch.tebe.notes","time":"2018-01-29T22:17:37+01:00","version":"0.5"}  
 
+## Build
+
+    composer build
+
+Build a zip archive for production. Needs globally installed `git` and `composer` and an existing `config/prod.env.php`.
